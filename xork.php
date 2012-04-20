@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: Advanced XML Reader
-Plugin URI: http://dev.raymonddesign.nl/wordpress-plugins/advanced-xml-reader/
-Description: Use the content of every XML file in your posts.
-Version: 0.3.4
-Author: RaymondDesign
-Author URI: http://www.raymonddesign.nl/
+Plugin Name: xork
+Plugin URI: http://operatorerror.org
+Description: Display the contents of Weather.gov worded forecasts.
+Version: 0.1.0
+Author: Daniel Riti
+Author URI: http://operatorerror.org
 License: GPL2
 */
 
@@ -43,6 +43,7 @@ License: GPL2
     add_filter('widget_title', 'aXMLreader_ParseTags'); // DEPRECATED as of version 0.3.4
     add_filter('widget_text', 'aXMLreader_ParseTags'); // DEPRECATED as of version 0.3.4
     add_shortcode('advanced-xml', 'aXMLreader_ParseShortcode');
+    add_shortcode('xork', 'aXMLreader_DumpWeather');
 
 // Define some usefull functions
     /**
@@ -150,7 +151,7 @@ License: GPL2
      */
         function aXMLreader_AdminMenu(){
             global $plugindata;
-        	add_options_page($plugindata['fullname'], $plugindata['shortname'], 9, $plugindata['nicename'], 'aXMLreader_AdminPage');
+            add_options_page($plugindata['fullname'], $plugindata['shortname'], 9, $plugindata['nicename'], 'aXMLreader_AdminPage');
             add_action('admin_init', 'register_aXMLreader_settings');        
         }
         
@@ -159,7 +160,7 @@ License: GPL2
      */
         function register_aXMLreader_settings() {
             global $plugindata;
-        	register_setting($plugindata['nicename'], $plugindata['nicename'].'_feed');
+            register_setting($plugindata['nicename'], $plugindata['nicename'].'_feed');
             register_setting($plugindata['nicename'], $plugindata['nicename'].'_itemdel');
             register_setting($plugindata['nicename'], $plugindata['nicename'].'_rowdel');
             register_setting($plugindata['nicename'], $plugindata['nicename'].'_hidetag');
@@ -283,5 +284,87 @@ License: GPL2
 	        }
         }
         return false;
+     }
+
+     /**
+     * Extract the day information (i.e. Wednesday, Tuesday Night, etc)
+     * Return: $days (array of strings)
+     */
+     function getDayArray($dwml){
+
+        $days = array();
+
+        $xpath = "/dwml/data[contains(@type,'forecast')]/time-layout";
+
+        //Extract the day information (i.e. Wednesday, Tuesday Night, etc)
+        foreach ($dwml->xpath($xpath) as $timeLayout) {
+          if ($timeLayout->{'layout-key'} == "k-p12h-n9-1") {
+
+            foreach ($timeLayout->{'start-valid-time'} as $time) {
+              foreach ($time->attributes() as $key => $value) {
+                
+                if ($key == "period-name") {
+                  array_push($days, $value);
+                }
+              }
+            }
+          }
+        }
+
+        return $days;
+     }
+
+
+     /**
+     * Extract the weather information 
+     * Return: $weather (array of strings)
+     */
+     function getWeatherArray($dwml){
+
+        $weather = array();
+
+        $xpath = "/dwml/data[contains(@type,'forecast')]/parameters/wordedForecast/text";
+
+        foreach ($dwml->xpath($xpath) as $forecast) {
+          array_push($weather, $forecast);
+        }
+
+        return $weather;
+     }
+
+
+     /**
+     * Extract the weather information 
+     * Return: string
+     */
+     function mergeDayWeatherInfo($days, $weather, $delimiter){
+
+       $dayWeather = array();
+
+       $size = sizeof($days);
+
+       for($i=0; $i<$size; $i++) {
+         array_push($dayWeather, "<strong>".$days[$i].":</strong></br>".$weather[$i]);
+       }
+
+       return implode($dayWeather, $delimiter);
+     }
+
+
+     /**
+     * Parse Wordpress shortcode tags
+     * Return: $text (string)
+     */
+     function aXMLreader_DumpWeather($atts){
+        global $plugindata;
+
+        //$dwml = simplexml_load_file('http://forecast.weather.gov/MapClick.php?lat=41.82200&lon=-71.41970&FcstType=dwml');
+        $dwml = simplexml_load_file('http://forecast.weather.gov/MapClick.php?lat=40.63897&lon=-72.35321&FcstType=dwml');
+
+        $days = getDayArray($dwml);
+        $weather = getWeatherArray($dwml);
+        $delimiter = "<br /><br />";
+
+        return mergeDayWeatherInfo($days, $weather, $delimiter);
      }
 ?>
