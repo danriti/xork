@@ -3,7 +3,7 @@
 Plugin Name: xork
 Plugin URI: http://operatorerror.org
 Description: Display the contents of Weather.gov worded forecasts.
-Version: 0.1.0
+Version: 0.1.1
 Author: Daniel Riti
 Author URI: http://operatorerror.org
 License: GPL2
@@ -12,7 +12,7 @@ License: GPL2
 /*  Copyright 2011  RaymondDesign  (email : webmaster@raymonddesign.nl)
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License, version 2, as 
+    it under the terms of the GNU General Public License, version 2, as
     published by the Free Software Foundation.
 
     This program is distributed in the hope that it will be useful,
@@ -33,7 +33,7 @@ License: GPL2
     $plugindata['shortname']    = 'Advanced XML';
     $plugindata['shortnicename']= 'advanced-xml';
     $plugindata['versionhash']  = 'TQQLx9SFSu'; // This hash represents the current version
-    
+
     $pluginvars['remove_tag']   = array(); // Contains the tags that has to be hidden
 
 // Load/enable some hooks/functions
@@ -66,8 +66,8 @@ License: GPL2
             $return = preg_replace_callback("#([\w]+?://[\w\#$%&~/.\-;:=,?@\[\]+]*)#is", 'aXMLreader_parsetag', $return);
             $return = preg_replace("#([a-z0-9&\-_.]+?)@([\w\-]+\.([\w\-\.]+\.)*[\w]+)#i", "<a href=\"mailto:\\1@\\2\">\\1@\\2</a>", $return);
             return $return;
-        } 
-     
+        }
+
         function aXMLreader_parsetag($matches){
             $ext = array('jpg', 'png', 'gif', 'bmp');
             if(in_array(substr($matches[0],-3,3),$ext)){
@@ -77,7 +77,7 @@ License: GPL2
                 return '<a href="http://'.$matches[0].'">'.$matches[0].'</a>';
             }
         }
-        
+
     /**
      * Transforms the raw SimpleXMLElement array into a 3 dimensional array
      * Return: Array
@@ -107,9 +107,9 @@ License: GPL2
 
     /**
      * Transforms the array from aXMLreader_show_data into two arrays, which can be used in str_replace
-     * 
+     *
      * DEPRECATED as of version 0.3.4
-     * 
+     *
      * Return: A array containing two arrays: patterns & replacements
      */
         function aXMLreader_create_replace_arrays($array, $row_delimiter, $item_delimiter){
@@ -126,10 +126,10 @@ License: GPL2
             }
             return array('pattern' => $pattern, 'replace' => $replace);
         }
-        
+
      /**
      * Merge multiple items for same tag into one string
-     * 
+     *
      * Return: string
      */
         function aXMLreader_merge_data($array, $row_delimiter, $item_delimiter){
@@ -152,9 +152,9 @@ License: GPL2
         function aXMLreader_AdminMenu(){
             global $plugindata;
             add_options_page($plugindata['fullname'], $plugindata['shortname'], 9, $plugindata['nicename'], 'aXMLreader_AdminPage');
-            add_action('admin_init', 'register_aXMLreader_settings');        
+            add_action('admin_init', 'register_aXMLreader_settings');
         }
-        
+
     /**
      * Register allowed settings fields
      */
@@ -165,12 +165,12 @@ License: GPL2
             register_setting($plugindata['nicename'], $plugindata['nicename'].'_rowdel');
             register_setting($plugindata['nicename'], $plugindata['nicename'].'_hidetag');
         }
-        
+
     /**
      * Show the admin page to manage feeds
      * Return: - (echo is used)
      */
-    
+
         function aXMLreader_AdminPage(){
             global $plugindata;
             echo '<div class="wrap">
@@ -218,7 +218,7 @@ License: GPL2
                                 $tmpvalue = aXMLreader_cutstr($value[0],30);
                             }
                             echo '<tr><td>'.$key.'</td><td>'.$tmpvalue.'</td><td>['.$plugindata['shortnicename'].' tag=&quot;'.$key.'&quot;]</td></tr>';
-                        }  
+                        }
                     echo '</table>';
                 }
             }
@@ -234,15 +234,15 @@ License: GPL2
                     </div><br />
                     <img src="http://script.raymonddesign.nl/logo_'.$plugindata['versionhash'].'.jpg" alt="Logo" />';
         }
-        
-//      
+
+//
 //Front end plugin code
 //
     /**
      * Replaces the tags used in posts in real values
-     * 
+     *
      * DEPRECATED as of version 0.3.4
-     * 
+     *
      * Return: $text (string)
      */
      function aXMLreader_ParseTags($text){
@@ -260,7 +260,7 @@ License: GPL2
         }
         return $text;
      }
-     
+
      /**
      * Parse Wordpress shortcode tags
      * Return: $text (string)
@@ -287,46 +287,17 @@ License: GPL2
      }
 
      /**
-     * Extract the day information (i.e. Wednesday, Tuesday Night, etc)
-     * Return: $days (array of strings)
-     */
-     function getDayArray($dwml){
-
-        $days = array();
-
-        $xpath = "/dwml/data[contains(@type,'forecast')]/time-layout";
-
-        //Extract the day information (i.e. Wednesday, Tuesday Night, etc)
-        foreach ($dwml->xpath($xpath) as $timeLayout) {
-          if ($timeLayout->{'layout-key'} == "k-p12h-n9-1") {
-
-            foreach ($timeLayout->{'start-valid-time'} as $time) {
-              foreach ($time->attributes() as $key => $value) {
-                
-                if ($key == "period-name") {
-                  array_push($days, $value);
-                }
-              }
-            }
-          }
-        }
-
-        return $days;
-     }
-
-
-     /**
-     * Extract the weather information 
+     * Extract the weather information
      * Return: $weather (array of strings)
      */
-     function getWeatherArray($dwml){
+     function getWeatherArray($xml){
 
         $weather = array();
 
-        $xpath = "/dwml/data[contains(@type,'forecast')]/parameters/wordedForecast/text";
+        $xpath = "/Forecast/period";
 
-        foreach ($dwml->xpath($xpath) as $forecast) {
-          array_push($weather, $forecast);
+        foreach ($xml->xpath($xpath) as $period) {
+          array_push($weather, $period->text);
         }
 
         return $weather;
@@ -334,7 +305,25 @@ License: GPL2
 
 
      /**
-     * Extract the weather information 
+     * Extract the day information
+     * Return: $days (array of strings)
+     */
+     function getDayArray($xml){
+
+        $days = array();
+
+        $xpath = "/Forecast/period";
+
+        foreach ($xml->xpath($xpath) as $period) {
+          array_push($days, $period->valid);
+        }
+
+        return $days;
+     }
+
+
+     /**
+     * Merge the weather information
      * Return: string
      */
      function mergeDayWeatherInfo($days, $weather, $delimiter){
@@ -352,17 +341,16 @@ License: GPL2
 
 
      /**
-     * Parse Wordpress shortcode tags
+     * Dump weather data.
      * Return: $text (string)
      */
      function aXMLreader_DumpWeather($atts){
         global $plugindata;
 
-        //$dwml = simplexml_load_file('http://forecast.weather.gov/MapClick.php?lat=41.82200&lon=-71.41970&FcstType=dwml');
-        $dwml = simplexml_load_file('http://forecast.weather.gov/MapClick.php?lat=40.63897&lon=-72.35321&FcstType=dwml');
+        $xml = simplexml_load_file('http://forecast.weather.gov/MapClick.php?lat=40.64&lon=-72.35&FcstType=xml');
 
-        $days = getDayArray($dwml);
-        $weather = getWeatherArray($dwml);
+        $days = getDayArray($xml);
+        $weather = getWeatherArray($xml);
         $delimiter = "<br /><br />";
 
         return mergeDayWeatherInfo($days, $weather, $delimiter);
