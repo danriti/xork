@@ -6,9 +6,9 @@ A simple Wordpress plugin for displaying Weather.gov forecasts.
 
 1. Make a zip.
 
-<pre>
-zip xork.zip xork/*
-</pre>
+    <pre>
+    zip xork.zip xork/*
+    </pre>
 
 1. Install via the Wordpress Plugin upload form.
 1. Active.
